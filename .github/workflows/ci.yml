@@ -1,0 +1,41 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build solution
+      run: dotnet build --no-restore --configuration Release
+
+    - name: Run Tests (Unit + BDD) + Coverage
+      run: dotnet test --no-build --configuration Release --collect "XPlat Code Coverage"
+
+    - name: Upload Coverage Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: '**/coverage.cobertura.xml'
+
+    - name: Run Code Analysis
+      run: dotnet format --verify-no-changes || true
+
+    - name: Dependency Vulnerability Scan
+      run: dotnet list package --vulnerable || true
