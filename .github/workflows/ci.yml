@@ -14,14 +14,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Required for SonarCloud
+        fetch-depth: 0
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
 
-    - name: Install SonarScanner
+    - name: Install SonarCloud Scanner
       uses: SonarSource/sonarcloud-github-action@v2
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -32,30 +32,30 @@ jobs:
     - name: Build solution
       run: dotnet build --no-restore --configuration Release
 
-    - name: Run Tests with Coverage
+    - name: Run tests with coverage
       run: dotnet test --no-build --configuration Release --collect "XPlat Code Coverage"
 
-    - name: Locate coverage file
+    - name: Find coverage file
       id: coverage
-      run: echo "##[set-output name=path;]$(find . -type f -name 'coverage.cobertura.xml')"
+      run: |
+        FILE=$(find . -type f -name 'coverage.cobertura.xml')
+        echo "coverage_path=$FILE" >> $GITHUB_OUTPUT
 
-    - name: SonarCloud Scan
+    - name: SonarCloud Analysis
       uses: SonarSource/sonarcloud-github-action@v2
       with:
         args: >
-          -Dsonar.projectKey=chan27052705_bp
-          -Dsonar.organization=chan27052705-1
-          -Dsonar.cs.opencover.reportsPaths=${{ steps.coverage.outputs.path }}
-          -Dsonar.coverage.exclusions=**/wwwroot/**
-
+          -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
+          -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
+          -Dsonar.cs.opencover.reportsPaths=${{ steps.coverage.outputs.coverage_path }}
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-    - name: Upload Coverage Report
+    - name: Upload Coverage
       uses: actions/upload-artifact@v4
       with:
         name: coverage-report
-        path: ${{ steps.coverage.outputs.path }}
+        path: ${{ steps.coverage.outputs.coverage_path }}
 
     - name: Vulnerability Scan
       run: dotnet list package --vulnerable || true
