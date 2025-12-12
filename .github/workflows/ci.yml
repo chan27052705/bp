@@ -38,16 +38,18 @@ jobs:
 
     # ⚠️ Only ONE SonarCloud step, with args
     - name: SonarCloud Analysis
-      uses: SonarSource/sonarcloud-github-action@v2
+      uses: SonarSource/sonarcloud-github-action@master
       with:
         projectBaseDir: .
         args: >
           -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
           -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
-          -Dsonar.cs.opencover.reportsPaths=${{ steps.coverage.outputs.coverage_path }}
+          -Dsonar.cs.opencover.reportsPaths=**/coverage.cobertura.xml
+          -Dsonar.coverage.exclusions=**/wwwroot/**,**/*.cshtml.cs
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
     - name: Upload Coverage
       uses: actions/upload-artifact@v4
