@@ -45,10 +45,10 @@ jobs:
           -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
           -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
           -Dsonar.cs.opencover.reportsPaths=**/coverage.cobertura.xml
-          -Dsonar.coverage.exclusions=**/wwwroot/**,**/*.cshtml.cs
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
 
     - name: Upload Coverage
