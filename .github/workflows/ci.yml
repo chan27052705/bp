@@ -27,33 +27,36 @@ jobs:
     - name: Build
       run: dotnet build --no-restore --configuration Release
 
+    # -------------------------------
+    # RUN TESTS + GENERATE COVERAGE
+    # -------------------------------
     - name: Run Tests with Coverage
       run: dotnet test --configuration Release --collect "XPlat Code Coverage"
 
-    - name: Locate coverage file
-      id: coverage
-      run: |
-        file=$(find . -type f -name "coverage.cobertura.xml")
-        echo "coverage_path=$file" >> $GITHUB_OUTPUT
+    # ------------------------------------
+    # INSTALL REPORT GENERATOR (Convert)
+    # ------------------------------------
+    - name: Install ReportGenerator
+      run: dotnet tool install --global dotnet-reportgenerator-globaltool
 
+    - name: Convert Coverage to OpenCover
+      run: |
+        reportgenerator \
+          -reports:**/coverage.cobertura.xml \
+          -targetdir:CoverletOutput \
+          -reporttypes:OpenCover
+
+    # -------------------------------
+    # SONARCLOUD SCAN  (ONLY ONCE)
+    # -------------------------------
     - name: SonarCloud Scan
       uses: sonarsource/sonarcloud-github-action@v2
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         args: >
           -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
           -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
           -Dsonar.host.url=https://sonarcloud.io
-          -Dsonar.cs.opencover.reportsPaths=**/coverage.cobertura.xml
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-
-    - name: Upload Coverage Report
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-report
-        path: ${{ steps.coverage.outputs.coverage_path }}
-
-    - name: Vulnerability Scan
-      run: dotnet list package --vulnerable || true
+          -Dsonar.cs.opencover.reportsPaths=CoverletOutput/opencover.xml
