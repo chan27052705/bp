@@ -1,17 +1,17 @@
-name: CI Pipeline with SonarCloud
+name: CI - Build, Test, Coverage, SonarCloud
 
 on:
   push:
-    branches: [ "**" ]
+    branches: [ "main", "master", "**" ]
   pull_request:
-    branches: [ "**" ]
+    branches: [ "main", "master", "**" ]
 
 jobs:
-  build-test-analyze:
+  build-test-sonar:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
+    - name: Checkout
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
@@ -24,34 +24,31 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
 
-    - name: Build solution
+    - name: Build
       run: dotnet build --no-restore --configuration Release
 
-    - name: Run tests with coverage
-      run: dotnet test --no-build --configuration Release --collect "XPlat Code Coverage"
+    - name: Run Tests with Coverage
+      run: dotnet test --configuration Release --collect "XPlat Code Coverage"
 
-    - name: Find coverage file
+    - name: Locate coverage file
       id: coverage
       run: |
-        FILE=$(find . -type f -name 'coverage.cobertura.xml')
-        echo "coverage_path=$FILE" >> $GITHUB_OUTPUT
+        file=$(find . -type f -name "coverage.cobertura.xml")
+        echo "coverage_path=$file" >> $GITHUB_OUTPUT
 
-    # ⚠️ Only ONE SonarCloud step, with args
-    - name: SonarCloud Analysis
+    - name: SonarCloud Scan
       uses: SonarSource/sonarcloud-github-action@master
       with:
         projectBaseDir: .
         args: >
           -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
           -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
-          -Dsonar.cs.opencover.reportsPaths=**/coverage.cobertura.xml
+          -Dsonar.cs.opencover.reportsPaths=${{ steps.coverage.outputs.coverage_path }}
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-
-
-    - name: Upload Coverage
+    - name: Upload Coverage Report
       uses: actions/upload-artifact@v4
       with:
         name: coverage-report
