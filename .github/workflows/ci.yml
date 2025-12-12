@@ -21,11 +21,6 @@ jobs:
       with:
         dotnet-version: '8.0.x'
 
-    - name: Install SonarCloud Scanner
-      uses: SonarSource/sonarcloud-github-action@v2
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
     - name: Restore dependencies
       run: dotnet restore
 
@@ -41,15 +36,18 @@ jobs:
         FILE=$(find . -type f -name 'coverage.cobertura.xml')
         echo "coverage_path=$FILE" >> $GITHUB_OUTPUT
 
+    # ⚠️ Only ONE SonarCloud step, with args
     - name: SonarCloud Analysis
       uses: SonarSource/sonarcloud-github-action@v2
       with:
+        projectBaseDir: .
         args: >
           -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
           -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
           -Dsonar.cs.opencover.reportsPaths=${{ steps.coverage.outputs.coverage_path }}
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Upload Coverage
       uses: actions/upload-artifact@v4
